@@ -22,6 +22,6 @@ executable gl-glfw
   build-depends:       
     base   >= 4.7 && < 4.8,
     GLFW-b == 1.4.6,
-    gl     >= 0.7.2.1
+    gl     >= 0.7.2.2
   hs-source-dirs:      src
   default-language:    Haskell2010
