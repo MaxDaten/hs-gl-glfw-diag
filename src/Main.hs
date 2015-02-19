@@ -5,6 +5,8 @@ import qualified Graphics.UI.GLFW          as GLFW
 import qualified Graphics.GL.Core44        as GL
 import qualified Graphics.GL.Types         as GL
 import qualified Graphics.GL.Ext.KHR.Debug as GL
+import qualified Graphics.GL.Ext.ARB.ShaderStorageBufferObject as GL
+import qualified Graphics.GL.Ext.ARB.SparseTexture as GL
 import Control.Exception
 import Control.Monad
 import Control.Concurrent (threadDelay)
@@ -15,11 +17,22 @@ import Foreign.Ptr
 import Foreign.C.String
 import Text.Printf
 
+
+windowHints =
+  [ GLFW.WindowHint'ClientAPI GLFW.ClientAPI'OpenGL
+  , GLFW.WindowHint'ContextVersionMajor 4
+  , GLFW.WindowHint'ContextVersionMinor 3
+  , GLFW.WindowHint'OpenGLForwardCompat True
+  , GLFW.WindowHint'OpenGLDebugContext True
+  , GLFW.WindowHint'OpenGLProfile GLFW.OpenGLProfile'Core
+  ]
+
 main :: IO ()
 main = do
   print . showString "GLFW init: " . show =<< GLFW.init
   print =<< GLFW.getVersion
   print =<< GLFW.getVersionString
+  mapM_ GLFW.windowHint windowHints
   bracket 
     (fromJust <$> GLFW.createWindow 200 200 "GLFW-GL Test" Nothing Nothing)
     (GLFW.destroyWindow)
@@ -41,6 +54,9 @@ withWindow win = do
     if GL.gl_KHR_debug 
       then installHook >> testMsg
       else print "gl_KHR_debug not supported"
+    printf "gl_ARB_shader_storage_buffer_object: %s\n" (show GL.gl_ARB_shader_storage_buffer_object)
+    printf "gl_ARB_sparse_texture: %s\n" (show GL.gl_ARB_sparse_texture)
+    GLFW.swapBuffers win
  where
   glVersion win = Version 
       <$> sequence [GLFW.getWindowContextVersionMajor win, GLFW.getWindowContextVersionMinor win, GLFW.getWindowContextVersionRevision win]
@@ -62,8 +78,7 @@ getString = GL.glGetString >=> peekCString . castPtr
 glCallback :: GL.GLenum -> GL.GLenum -> GL.GLuint -> GL.GLenum -> GL.GLsizei -> Ptr GL.GLchar -> Ptr () -> IO ()
 glCallback source t ident severity _ message _ = do
   message' <- peekCString message
-  error "xxx"
-  printf "%s:[%s] %s (%d): {%s}" priority t' source' ident message'
+  printf "%s:[%s] %s (%d): {%s}\n" priority t' source' ident message'
  where
   source', t' :: String
   source' = case source of
@@ -92,4 +107,4 @@ glCallback source t ident severity _ message _ = do
     GL.GL_DEBUG_SEVERITY_NOTIFICATION    -> "NOTICE"
     _ -> "INFO"
 
-testMsg = withCString "An Application Test Msg" $ GL.glDebugMessageInsert GL.GL_DEBUG_SOURCE_OTHER GL.GL_DEBUG_TYPE_OTHER 42 GL.GL_DEBUG_SEVERITY_NOTIFICATION (-1)
+testMsg = withCString "An Application Test Msg" $ GL.glDebugMessageInsert GL.GL_DEBUG_SOURCE_APPLICATION GL.GL_DEBUG_TYPE_OTHER 42 GL.GL_DEBUG_SEVERITY_NOTIFICATION (-1)
